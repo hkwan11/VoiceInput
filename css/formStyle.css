@@ -1,0 +1,9 @@
+#success_message{ display: none;}
+
+body {
+  /*background-image: url("http://www.letsflycheap.co.uk/App_Themes/Theme1/custom_flycheap/images/masterBg.jpg");*/
+  background-image: url("http://feelgrafix.com/data_images/out/2/745792-beach-wallpaper.jpg");
+  background-attachment: fixed;
+  background-position: 100% 100%;
+  background-repeat: no-repeat;
+}
