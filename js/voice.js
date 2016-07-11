@@ -5,140 +5,193 @@ var recognizing = false;
 var ignore_onend;
 var start_timestamp;
 
+$(document).ready(function() {
+        highlightcurrent()
+    }
+    )
+
 if (!('webkitSpeechRecognition' in window)) {
-  upgrade();
+    upgrade();
 } 
 else {
-  start_button.style.display = 'inline-block';
-  var recognition = new webkitSpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
+    start_button.style.display = 'inline-block';
+    var recognition = new webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
-  recognition.onstart = function() {
-    recognizing = true;
-    showInfo('info_speak_now');
+    recognition.onstart = function() {
+        recognizing = true;
+        start_img.src = 'mic-animate.gif';
+    };
 
-start_img.src = 'mic-animate.gif';
-  };
+    recognition.onerror = function(event) {
+        if (event.error == 'no-speech') {
+            start_img.src = 'mic.gif';
+            showInfo('info_no_speech');
+            ignore_onend = true;
+        }
+        if (event.error == 'audio-capture') {
+            start_img.src = 'mic.gif';
+            showInfo('info_no_microphone');
+            ignore_onend = true;
+        }
+        if (event.error == 'not-allowed') {
+            if (event.timeStamp - start_timestamp < 100) {
+                showInfo('info_blocked');
+            } 
+            else {
+                showInfo('info_denied');
+            }
+            ignore_onend = true;
+        }
+    };
 
-  recognition.onerror = function(event) {
-    if (event.error == 'no-speech') {
-      start_img.src = 'mic.gif';
-      showInfo('info_no_speech');
-      ignore_onend = true;
-    }
-    if (event.error == 'audio-capture') {
-      start_img.src = 'mic.gif';
-      showInfo('info_no_microphone');
-      ignore_onend = true;
-    }
-    if (event.error == 'not-allowed') {
-      if (event.timeStamp - start_timestamp < 100) {
-        showInfo('info_blocked');
-      } else {
-        showInfo('info_denied');
-      }
-      ignore_onend = true;
-    }
-  };
-
-  recognition.onend = function() {
-    recognizing = false;
-    if (ignore_onend) {
-      return;
-    }
-    start_img.src = 'mic.gif';
-    if (!final_transcript) {
-      showInfo('info_name');
-      return;
-    }
-    showInfo('');
-    if (window.getSelection) {
-      window.getSelection().removeAllRanges();
-      var range = document.createRange();
-      range.selectNode(document.getElementById('final_span'));
-      window.getSelection().addRange(range);
-    }
-    if (create_email) {
-      create_email = false;
-      createEmail();
-    }
-  };
-
-//collects voice results into final and interim transcripts
-  recognition.onresult = function(event) {
-    var interim_transcript = '';
-    for (var i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal) {
-        final_transcript += event.results[i][0].transcript;
-      } else {
-        interim_transcript += event.results[i][0].transcript;
-      }
-    }
-    final_transcript       = capitalize(final_transcript);
-    final_span.innerHTML   = linebreak(final_transcript);
-    interim_span.innerHTML = linebreak(interim_transcript);
+    // recognition.onend = function() {
+    //     recognizing = false;
+    //     if (ignore_onend) {
+    //         return;
+    //     }
+    //     start_img.src = 'mic.gif';
+    //     if (!final_transcript) {
+    //         showInfo('info_name');
+    //         return;
+    //     }
+    //     showInfo('');
+    //     if (window.getSelection) {
+    //         window.getSelection().removeAllRanges();
+    //         var range = document.createRange();
+    //         range.selectNode(document.getElementById('final_span'));
+    //         window.getSelection().addRange(range);
+    //     }
+    // };
     
-    var temp              = final_span.innerHTML.split(" ")
-    if (temp.length > 3) {
-        street_number.innerHTML = temp[0];
-        street_name.innerHTML = temp[1];
-        city.innerHTML = temp[3]; //to account for "street", "avenue", etc.
-        state.innerHTML= temp[4];
-        zipcode.innerHTML = temp[5];
-    }
-    else {
-        first_name.innerHTML  = temp[0];
-        middle_name.innerHTML = temp[1];
-        last_name.innerHTML   = temp[2];
-    }
-    if (final_transcript || interim_transcript) {
-      showButtons('inline-block');
-    }
-    
-  };
+    recognition.onend = function() {
+        recognizing = false;
+        if (ignore_onend) {
+            return;
+        }
+        start_img.src = 'mic.gif';
+        // if (!final_transcript) {
+        //     showInfo('info_name');
+        //     return;
+        // }
+        // showInfo('');
+        // if (window.getSelection) {
+        //     window.getSelection().removeAllRanges();
+        //     var range = document.createRange();
+        //     range.selectNode(document.getElementById('final_span'));
+        //     window.getSelection().addRange(range);
+        // }
+    };
+
+    fields = ['first_name_textbox','middle_name_textbox','last_name_textbox','email_textbox', 'phone_textbox', 'address_textbox', 'city_textbox', 'state_selectbox', 'zipcode_textbox']
+    currentfield = 0
+
+    //collects voice results into final and interim transcripts
+    recognition.onresult = function(event) {
+        console.log("onresult")
+        var interim_transcript = ""
+        var final_transcript = ""
+        for (var i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                final_transcript += event.results[i][0].transcript;
+                console.log("Final: " + event.results[i][0].transcript)
+            } 
+            else {
+                interim_transcript += event.results[i][0].transcript;
+                return;
+            }
+        }
+
+        //splits up the final transcript into capitalized words ie. [John Warren Smith]
+        final_transcript = linebreak(capitalize(final_transcript)); 
+        console.log("Final outside loop: " + final_transcript)
+        //splits up the final transcript into an array ie. [John, Warren, Smith]
+        //final_transcript_array = final_transcript.split(" ");
+        //assigns fid to specific field id based on currentfield index
+        fid = getcurrentfield();
+        //selects the html element with specific fid and updates html field to equal to the correct element in the final_transcript array
+        if  (fields[currentfield] == 'email_textbox') {
+            final_transcript = final_transcript.split(" ").join('').replace(/(\S+)(at)(\S+)(\.)(\S+)/, '$1@$3$4$5');
+            $(fid).val(final_transcript); 
+        }
+        if  (fields[currentfield] == 'phone_textbox') {
+            console.log('prev phone: ' + final_transcript)
+            final_transcript = final_transcript.split(" ").join('').replace(/(\d\d\d)(-)(\d\d\d)(-)(\d\d\d\d)/, '($1) $3$4$5');
+            console.log('final phone: ' + final_transcript)
+            $(fid).val(final_transcript);     
+        }
+        if (fields[currentfield] == 'address_textbox') {
+            $(fid).val(final_transcript);
+        }
+        else {
+            final_transcript = final_transcript.split(" ").join('');
+            $(fid).val(final_transcript);
+        }
+        //console.log("Entire transcript: " + final_transcript_array.toString());
+        //updates current highlighted div
+        updatecurrent();
+    };
 } //ends else statement
 
 function upgrade() {
-  start_button.style.visibility = 'hidden';
-  showInfo('info_upgrade');
+    start_button.style.visibility = 'hidden';
+    showInfo('info_upgrade');
 }
 
 var two_line = /\n\n/g;
 var one_line = /\n/g;
 function linebreak(s) {
-  return s.replace(two_line, '<p></p>').replace(one_line, '<br>');
+    return s.replace(two_line, '<p></p>').replace(one_line, '<br>');
 }
 
 var first_char = /\S/;
 function capitalize(s) {
-  return s.replace(first_char, function(m) { return m.toUpperCase(); });
+    return s.replace(first_char, function(m) { return m.toUpperCase(); });
+}
+
+function getcurrentfield() {
+    fid = "#" + fields[currentfield]
+    return $(fid)
+}
+
+function highlightcurrent() {
+    getcurrentfield().closest("div.form-group").find("label").addClass("currentfield")
+}
+
+function updatecurrent() {
+    getcurrentfield().closest("div.form-group").find("label").removeClass("currentfield")
+    currentfield += 1
+    getcurrentfield().closest("div.form-group").find("label").addClass("currentfield")
 }
 
 function startButton(event) {
-  if (recognizing) {
-    recognition.stop();
-    return;
-  }
-  final_transcript       = '';
-  recognition.start();
-  ignore_onend           = false;
-  final_span.innerHTML   = '';
-  interim_span.innerHTML = '';
-  start_img.src          = 'mic-slash.gif';
-  showInfo('info_allow');
-  start_timestamp        = event.timeStamp;
+    if (recognizing) {
+        recognition.stop();
+        return;
+    }
+    final_transcript       = '';
+    recognition.start();
+    ignore_onend           = false;
+    // final_span.innerHTML   = '';
+    // interim_span.innerHTML = '';
+    start_img.src          = 'mic-slash.gif';
+    // showInfo('info_allow');
+    start_timestamp        = event.timeStamp;
+    highlightcurrent()
+    
 }
 
-function showInfo(s) {
-  if (s) {
-    for (var child = info.firstChild; child; child = child.nextSibling) {
-      if (child.style) {
-        child.style.display = child.id == s ? 'inline' : 'none';
-      }
-    }
-    info.style.visibility = 'visible';
-  } else {
-    info.style.visibility = 'hidden';
-  }
-}
+// function showInfo(s) {
+//     if (s) {
+//         for (var child = info.firstChild; child; child = child.nextSibling) {
+//             if (child.style) {
+//                 child.style.display = child.id == s ? 'inline' : 'none';
+//             }
+//         }
+//         info.style.visibility = 'visible';
+//     } 
+//     else {
+//         info.style.visibility = 'hidden';
+//     }
+// }
