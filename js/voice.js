@@ -45,25 +45,6 @@ else {
             ignore_onend = true;
         }
     };
-
-    // recognition.onend = function() {
-    //     recognizing = false;
-    //     if (ignore_onend) {
-    //         return;
-    //     }
-    //     start_img.src = 'mic.gif';
-    //     if (!final_transcript) {
-    //         showInfo('info_name');
-    //         return;
-    //     }
-    //     showInfo('');
-    //     if (window.getSelection) {
-    //         window.getSelection().removeAllRanges();
-    //         var range = document.createRange();
-    //         range.selectNode(document.getElementById('final_span'));
-    //         window.getSelection().addRange(range);
-    //     }
-    // };
     
     recognition.onend = function() {
         recognizing = false;
@@ -71,17 +52,6 @@ else {
             return;
         }
         start_img.src = 'mic.gif';
-        // if (!final_transcript) {
-        //     showInfo('info_name');
-        //     return;
-        // }
-        // showInfo('');
-        // if (window.getSelection) {
-        //     window.getSelection().removeAllRanges();
-        //     var range = document.createRange();
-        //     range.selectNode(document.getElementById('final_span'));
-        //     window.getSelection().addRange(range);
-        // }
     };
 
     fields = ['first_name_textbox','middle_name_textbox','last_name_textbox','email_textbox', 'phone_textbox', 'address_textbox', 'city_textbox', 'state_selectbox', 'zipcode_textbox']
@@ -103,16 +73,37 @@ else {
             }
         }
 
-        //splits up the final transcript into capitalized words ie. [John Warren Smith]
-        final_transcript = linebreak(capitalize(final_transcript)); 
+        //slice to take out extra space preceding word
+        if (fields[currentfield] == 'first_name_textbox') {
+             final_transcript = linebreak(capitalize(final_transcript));
+        }
+        else {
+            final_transcript = linebreak(capitalize(final_transcript)).slice(1); 
+        }
         console.log("Final outside loop: " + final_transcript)
-        //splits up the final transcript into an array ie. [John, Warren, Smith]
-        //final_transcript_array = final_transcript.split(" ");
         //assigns fid to specific field id based on currentfield index
         fid = getcurrentfield();
         //selects the html element with specific fid and updates html field to equal to the correct element in the final_transcript array
+        if (final_transcript == 'Back') {
+            final_transcript = '';
+            moveBack();
+            return
+        }
+        if (final_transcript == 'Next') {
+            final_transcript = '';
+            updatecurrent();
+            return
+        }
+        if (final_transcript == 'Delete') {
+            final_transcript = '';
+            $(fid).val(final_transcript);
+            return
+        }
+
         if  (fields[currentfield] == 'email_textbox') {
             final_transcript = final_transcript.split(" ").join('').replace(/(\S+)(at)(\S+)(\.)(\S+)/, '$1@$3$4$5');
+            final_transcript = final_transcript.split(" ").join('').replace('underscore', '_');
+            final_transcript = final_transcript.split(" ").join('').replace('dot', '.');
             $(fid).val(final_transcript); 
         }
         if  (fields[currentfield] == 'phone_textbox') {
@@ -125,7 +116,7 @@ else {
             $(fid).val(final_transcript);
         }
         else {
-            final_transcript = final_transcript.split(" ").join('');
+            //final_transcript = final_transcript.split(" ").join('');
             $(fid).val(final_transcript);
         }
         //console.log("Entire transcript: " + final_transcript_array.toString());
@@ -165,6 +156,12 @@ function updatecurrent() {
     getcurrentfield().closest("div.form-group").find("label").addClass("currentfield")
 }
 
+function moveBack() {
+    getcurrentfield().closest("div.form-group").find("label").removeClass("currentfield")
+    currentfield -= 1
+    getcurrentfield().closest("div.form-group").find("label").addClass("currentfield")
+}
+
 function startButton(event) {
     if (recognizing) {
         recognition.stop();
@@ -181,17 +178,3 @@ function startButton(event) {
     highlightcurrent()
     
 }
-
-// function showInfo(s) {
-//     if (s) {
-//         for (var child = info.firstChild; child; child = child.nextSibling) {
-//             if (child.style) {
-//                 child.style.display = child.id == s ? 'inline' : 'none';
-//             }
-//         }
-//         info.style.visibility = 'visible';
-//     } 
-//     else {
-//         info.style.visibility = 'hidden';
-//     }
-// }
