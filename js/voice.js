@@ -113,6 +113,7 @@ else {
             $(fid).val(final_transcript);     
         }
         if (fields[currentfield] == 'address_textbox') {
+            final_transcript = final_transcript.replace(/(apartment)(\s?)([a-z]*)(\s)(\d+)/, 'Apt#$5');
             $(fid).val(final_transcript);
         }
         else {
